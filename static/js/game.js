@@ -8,6 +8,8 @@ document.addEventListener("DOMContentLoaded",() => {
     let typeCount = 0; //タイプした総数
     let current = 0; //現在何単語目か
     let letterCount= 0; //ゲーム全体の単語数
+    let typedText;// 入力済みの文字
+    let untypedText;// 未入力の文字
 
 
     const wordObjList = []; //単語配列用のリスト
@@ -85,17 +87,80 @@ document.addEventListener("DOMContentLoaded",() => {
         let currentPanel = document.getElementById(`panel-${current - 1}`);
         let nextPanel = document.getElementById(`panel-${current}`);
         // 2
-        current.Panel.classList.remove("active");
+        currentPanel.classList.remove("active");
         currentPanel.classList.add("faded");
         nextPanel.classList.add("active");
     }
-    // 時間がかかる処理を待ってから、実行できるようにする。
-    (async () =>{
-        await fetch(`csv/word-jr-1.csv`) //csvファイルのデータの取得
-        .then(response => response.text()) // \nを含む文字列に変換　例）egg,卵\nbag,カバン\nrise,バラ
-        .then(data => wordObjListMake(data)); // 実際に単語パネルを作成
 
-        console.log(wordObjList);
-        createPanels();
-    })();
+    function inputcheck(key){
+        // キーをUserが打ち込んだら、Userの入力した回数を増やしている
+        typeCount += 1;
+
+        // 1(a) 正解のキーをタイプしたら
+        // charAt(n)・・・n文字目を抜き出す
+        // 入力したキーが、現在の単語パネルのuntypedの１文字目と同じ場合
+        if (key == wordObjList[current]["untyped"].charAt(0)){
+            // 音声再生ごとに、最初から流れるようにする
+            clearSound.currentTime = 0;
+            clearSound.play();
+
+            // 1(b)
+            // untypedの１文字目をtypedに加えて、再代入している
+            wordObjList[current]["typed"] = wordObjList[current]["typed"] + wordObjList[current]["untyped"].charAt(0);
+            // untypedの２文字目以降を読み取って、再代入している
+            wordObjList[current]["untyped"] = wordObjList[current]["untyped"].substring(1);
+
+            // 1(c)
+            typedText.textContent = wordObjList[current]["typed"];
+            untypedText.textContent = wordObjList[current]["untyped"];
+
+            // ラスト１文字→次のワードへ
+            // 2
+            if (wordObjList[current]["untyped"].length == 0){
+                current += 1;
+
+                if(current == wordLength){
+
+                }
+                // 3(b)
+                else{
+                    highlightCurrentPanel(); // 単語パネルを目立たせる処理
+                    typedText = document.getElementById(`typed-${current}`); // 次のtypedの要素(id)を取得
+                    untypedText = document.getElementById(`untyped-${current}`);
+                }
+            }
+        }
+
+        // 4 間違ったキーをタイプしたら
+        else{
+            missSound.currentTime = 0;
+            missSound.play();
+            missTypeCount += 1;
+        }
+
+    }
+    
+    // 1
+    window.addEventListener("keydown", (event) => {
+        // 2 もしゲームがまだスタートしていなくて、スペースキーが押されたら
+        if(startFlag == 0 && event.key == " "){
+            startFlag = 2;
+            // 時間がかかる処理を待ってから、実行できるようにする。
+            (async () =>{ // awaitを呼び出す
+                // await 動機的に処理を行えるようにする
+                await fetch(`csv/word-jr-1.csv`) //csvファイルのデータの取得
+                    .then(response => response.text()) // \nを含む文字列に変換　例）egg,卵\nbag,カバン\nrise,バラ
+                    .then(data => wordObjListMake(data)); // 実際に単語パネルを作成
+                console.log(wordObjList);
+                createPanels();
+                // 5 追加
+                typedText = document.getElementById(`typed-${current}`);
+                untypedText = document.getElementById(`untyped-${current}`)
+            })();
+        }
+        // 3 ゲーム中かつ、１文字入力されていてかつ、登録した文字に対応していたら
+        else if(startFlag == 2 && event.key.length == 1 && event.key.match(/^[a-zA-Z0-9!-/:-@\[-`{-~\s]*$/)){
+            inputcheck(event.key);
+        }
+    })
 });
