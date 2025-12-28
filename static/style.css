@@ -59,6 +59,27 @@ input {
     margin: 0 auto;
 }
 
+.panel-container-play {
+    display: grid; /* 碁盤上に配置 */
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 10px;
+    justify-items: center;
+    align-items: center;
+    margin: 0 auto;
+}
+
+.untyped {
+    color: #000;
+    font-size: 1.35em;
+    font-weight: bold;
+}
+
+.typed {
+    color: #ccc;
+    font-size: 1.2em;
+}
+
 .panel {
     background: #6cf;
     color: #222;
@@ -72,6 +93,20 @@ input {
     font-weight: bold;
     box-shadow: 0 2px 8px #4448;
     margin-left: 5%;
+}
+
+.faded {
+    opacity: 0.4;
+    transform: scale(0.8);
+}
+.active {
+    background: #ffd700;
+    box-shadow: 0 0 14px #ffd700, 0 2px 8px #4448;
+}
+
+/* 3 */
+.active span:last-child{
+    color: #d33;
 }
 
 .game__info {
