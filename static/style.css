@@ -50,6 +50,61 @@ input {
     margin-left: 5px;
 }
 
+.reload {
+    cursor: pointer;
+    width: fit-content;
+    padding: 1% 5%;
+    border: 1px solid #000;
+    background-color: #fff;
+    border-radius: 20px;
+    position: relative;
+    left: 2vw;
+}
+
+.reload:hover{
+    opacity: 0.5;
+}
+
+.level-wrapper {
+    width: 70%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.level-options {
+    display: flex;
+    justify-content: space-around;
+    flex-flow: row wrap;
+}
+
+.level-heading {
+    text-align: center;
+    width: 50%;
+}
+
+.level_btn {
+    background-color: rgba(15,155,32,0.26);
+    border: 1px solid #0f9b20;
+    padding: 1em 2em;
+    margin-bottom: 1%;
+    margin-left: 1%;
+    flex-basis: 30%;
+    box-sizing: border-box;
+    cursor: pointer;
+    text-align: center;
+    min-width: 242px;
+}
+
+.active-level {
+    background-color: #7eee3e;
+    color: #fff;
+}
+
+#info {
+    margin: 25vh auto;
+}
+
 .panel-container {
     display: flex;
     width: 70%;

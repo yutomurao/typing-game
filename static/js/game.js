@@ -1,6 +1,8 @@
 //1　HTMLの要素が完全に解析&構築された後に内側のコードを実装
 document.addEventListener("DOMContentLoaded",() => {
 
+    const timeText = document.getElementById("timeText");
+    let timeoutID; // 終了時間
     //2　
     let startFlag = 0; // 0→開始前、１→開始待機、２→ゲーム中、３→終了
     let startTime; //経過時間を表示するための開始時間を保持
@@ -15,6 +17,16 @@ document.addEventListener("DOMContentLoaded",() => {
     const wordObjList = []; //単語配列用のリスト
     const wordLength = 20; //１ゲームの単語数
     const panelContainer = document.getElementsByClassName("panel-container")[0];
+    const wordCountText = document.getElementById("wordCount"); // 実際の単語パネルの表示数を表示する
+    document.getElementById("wordlength").textContent = `/${wordLength}`
+    const missMountText = document.getElementById("Missmount");
+
+    const scoreText = document.getElementById("score");
+    const otherResult = document.getElementById("other-result");
+    const resultSection = document.getElementById("results");
+
+    const infoBox = document.getElementById("info");
+
     //3　音声の取得
     const clearSound = document.getElementById("type_clear");
     const missSound = document.getElementById("type_miss");
@@ -48,6 +60,18 @@ document.addEventListener("DOMContentLoaded",() => {
             });
         };
     };
+
+    function displayTime(){
+        // 1
+        const currentTime = Date.now() - startTime; // 経過時間（今の時間 - ゲームの開始時間）
+        // 2
+        const s = String(Math.floor(currentTime / 1000)).padStart(2, "0");
+        const ms = String(currentTime % 1000).padStart(3, "0");
+        timeText.textContent = `${s}.${ms}`;
+        // 3
+        // 再帰・・・関数の中で関数を呼び出すこと（今回は10msごとに経過時間を表示）
+        timeoutID = setTimeout(displayTime, 10);
+    }
 
     function createPanels(){
         //1
@@ -92,6 +116,37 @@ document.addEventListener("DOMContentLoaded",() => {
         nextPanel.classList.add("active");
     }
 
+    // カウントダウン実行
+    function processStartGame(){
+        // 1 
+        // iは表示するカウントダウン、jは表示する時間の間隔（３秒を基点）
+        // setTimeoutで処理を遅らせる 
+        for(let i = 3, j = 0; i >= 1; i--, j++){
+            setTimeout(()=> {
+                infoBox.textContent = i;
+                countSound.currentTime = 0;
+                countSound.play();
+            }, j*1000);
+        };
+        // 2
+        setTimeout(async () =>{ // awaitを呼び出す
+            startFlag = 2;
+            infoBox.textContent = "";
+            // 時間がかかる処理を待ってから、実行できるようにする。
+            // await 動機的に処理を行えるようにする
+            await fetch(`csv/word-${level}.csv`) //csvファイルのデータの取得
+            .then(response => response.text()) // \nを含む文字列に変換　例）egg,卵\nbag,カバン\nrise,バラ
+            .then(data => wordObjListMake(data)); // 実際に単語パネルを作成
+            console.log(wordObjList);
+            createPanels();
+            startTime = Date.now();
+            displayTime();
+            // 5 追加
+            typedText = document.getElementById(`typed-${current}`);
+            untypedText = document.getElementById(`untyped-${current}`)
+            },3000);
+    }
+
     function inputcheck(key){
         // キーをUserが打ち込んだら、Userの入力した回数を増やしている
         typeCount += 1;
@@ -118,9 +173,11 @@ document.addEventListener("DOMContentLoaded",() => {
             // 2
             if (wordObjList[current]["untyped"].length == 0){
                 current += 1;
+                // 単語数の表記もcurrentに合わせよう
+                wordCountText.textContent = current;
 
                 if(current == wordLength){
-
+                    processEndGame();
                 }
                 // 3(b)
                 else{
@@ -136,31 +193,79 @@ document.addEventListener("DOMContentLoaded",() => {
             missSound.currentTime = 0;
             missSound.play();
             missTypeCount += 1;
+            // ミスタイプ数が表示されるように
+            missMountText.textContent = missTypeCount;
         }
 
     }
+
+    function processEndGame(){
+        // 1
+        clearTimeout(timeoutID);
+        const stopTime = (Date.now() - startTime); // 経過時間の計算結果
+
+        // 2
+        const score = parseInt((typeCount / stopTime) * 60000 * (letterCount / typeCount) ** 3);
+        scoreText.textContent = `SCORE: ${score}`;
+        otherResult.textContent = `合計入力文字数（ミスを含む）: ${typeCount}`;
+        resultSection.style.display = "flex";
+
+        // 3 全パネルのハイライトを消す
+        for (let i = 0; i < wordLength; i++){
+            const panel = document.getElementById("panel-" + i);
+            panel.classList.remove("active","faded");
+        };
+
+        // 4
+        startFlag = 3;
+        window.scrollTo({
+            top: 100, // 縦スクロールの位置
+            left: 0, // 横スクロールの位置
+            behavior: "smooth"
+        });
+    }
     
+    // ジャンル選択用
+    const levelBtns = document.querySelectorAll(".level_btn");
+    let radioInput = document.querySelector(".active-level input");
+    let level = radioInput.value; // 現在選択している学年のvalue要素を取得
+
+    // 手動で学年を変える
+    // newRadioInput・・・新しく選択された学年
+    // radioInput・・・現在選択されている学年
+    function handleLevelChanfe(newRadionInput){
+        // 今まで選択していたradioボタンと異なれば
+        // 1
+        if (radioInput !== newRadionInput){
+            level = newRadionInput.value;
+            newRadionInput.parentElement.classList.add("active-level");
+            radioInput.parentElement.classList.remove("active-level");
+            radioInput = newRadionInput;
+        }
+    }
+    // 2
+    levelBtns.forEach(element => {
+        element.querySelector("input").addEventListener("click", event => {
+            handleLevelChanfe(event.target);
+        });
+    });
+
     // 1
     window.addEventListener("keydown", (event) => {
         // 2 もしゲームがまだスタートしていなくて、スペースキーが押されたら
         if(startFlag == 0 && event.key == " "){
             startFlag = 2;
-            // 時間がかかる処理を待ってから、実行できるようにする。
-            (async () =>{ // awaitを呼び出す
-                // await 動機的に処理を行えるようにする
-                await fetch(`csv/word-jr-1.csv`) //csvファイルのデータの取得
-                    .then(response => response.text()) // \nを含む文字列に変換　例）egg,卵\nbag,カバン\nrise,バラ
-                    .then(data => wordObjListMake(data)); // 実際に単語パネルを作成
-                console.log(wordObjList);
-                createPanels();
-                // 5 追加
-                typedText = document.getElementById(`typed-${current}`);
-                untypedText = document.getElementById(`untyped-${current}`)
-            })();
+            // 関数実行コードとstartFlagによる状態管理のみにする
+            startFlag = 1;
+            processStartGame();
         }
         // 3 ゲーム中かつ、１文字入力されていてかつ、登録した文字に対応していたら
         else if(startFlag == 2 && event.key.length == 1 && event.key.match(/^[a-zA-Z0-9!-/:-@\[-`{-~\s]*$/)){
             inputcheck(event.key);
+        }
+        // ゲームが終わっていてかつ、EnteまたはEscが押されたときに実行
+        else if (startFlag == 3 && (event.key == "Enter" || event.key == "Escape")){
+            this.location.reload(); // リロード
         }
     })
 });
